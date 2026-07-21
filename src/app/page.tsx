@@ -1,5 +1,5 @@
-import { PlannerScreen } from '@/components/PlannerScreen'
+import { AppShell } from '@/components/AppShell'
 
 export default function HomePage() {
-  return <PlannerScreen />
+  return <AppShell />
 }

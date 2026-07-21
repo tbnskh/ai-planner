@@ -3,7 +3,8 @@ import { z } from 'zod'
 import type { ParsedTask, Task } from './types'
 
 const priority = z.enum(['high', 'medium', 'low'])
-const status = z.enum(['inbox', 'today', 'done'])
+// Приймаємо legacy 'done' зі старих збережень, далі нормалізуємо його нижче.
+const storedStatus = z.enum(['inbox', 'today', 'done'])
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 /**
@@ -29,11 +30,11 @@ export function sanitizeParsedTasks(input: unknown): ParsedTask[] {
   })
 }
 
-const taskSchema = z.object({
+const storedTaskSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   notes: z.string().optional(),
-  status,
+  status: storedStatus,
   priority,
   estimatedMinutes: z.number().optional(),
   scheduledDate: z.string().optional(),
@@ -44,8 +45,26 @@ const taskSchema = z.object({
 
 const storageSchema = z.object({
   version: z.literal(1),
-  tasks: z.array(taskSchema),
+  tasks: z.array(storedTaskSchema),
 })
+
+type StoredTask = z.infer<typeof storedTaskSchema>
+
+/**
+ * Legacy-міграція: раніше 'done' був статусом, і виконана задача жила в «Сьогодні».
+ * Тепер виконаність — це completedAt, а статус лише секція. Старе 'done'
+ * перетворюємо на today + completedAt, щоб збережені задачі не зникли.
+ */
+function normalizeStoredTask(task: StoredTask): Task {
+  if (task.status === 'done') {
+    return {
+      ...task,
+      status: 'today',
+      completedAt: task.completedAt ?? new Date().toISOString(),
+    }
+  }
+  return { ...task, status: task.status }
+}
 
 /**
  * localStorage — недовірене джерело: користувач міг його відредагувати,
@@ -54,7 +73,7 @@ const storageSchema = z.object({
 export function parseStoredTasks(raw: string): Task[] | null {
   try {
     const result = storageSchema.safeParse(JSON.parse(raw))
-    return result.success ? result.data.tasks : null
+    return result.success ? result.data.tasks.map(normalizeStoredTask) : null
   } catch {
     return null
   }

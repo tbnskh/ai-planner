@@ -1,6 +1,7 @@
 'use client'
 
 import { cardColor } from '@/lib/cardColor'
+import { isDone as taskIsDone } from '@/lib/tasks'
 import type { Task, TaskPriority } from '@/lib/types'
 
 const PRIORITY_LABEL: Record<TaskPriority, string> = {
@@ -11,34 +12,16 @@ const PRIORITY_LABEL: Record<TaskPriority, string> = {
 
 interface TaskItemProps {
   task: Task
-  onToggleDone?: (id: string) => void
-  onMoveToToday?: (id: string) => void
+  onToggleDone: (id: string) => void
   onRemove: (id: string) => void
 }
 
-export function TaskItem({
-  task,
-  onToggleDone,
-  onMoveToToday,
-  onRemove,
-}: TaskItemProps) {
-  const isDone = task.status === 'done'
+export function TaskItem({ task, onToggleDone, onRemove }: TaskItemProps) {
+  const isDone = taskIsDone(task)
   const isHigh = task.priority === 'high'
   const meta = cardMeta(task)
 
-  // Кружечок — головна дія картки: у «Сьогодні» перемикає виконано,
-  // в «Інших днях» переносить задачу в «Сьогодні». Логіка та сама, що й раніше.
-  const primaryAction = onToggleDone
-    ? () => onToggleDone(task.id)
-    : onMoveToToday
-      ? () => onMoveToToday(task.id)
-      : undefined
-
-  const primaryLabel = onToggleDone
-    ? isDone
-      ? 'Позначити невиконаною'
-      : 'Виконано'
-    : 'Перенести в сьогодні'
+  const primaryLabel = isDone ? 'Позначити невиконаною' : 'Виконано'
 
   return (
     <li>
@@ -77,8 +60,7 @@ export function TaskItem({
         <div className="mt-1.5 flex items-center gap-3">
           <button
             type="button"
-            onClick={primaryAction}
-            disabled={!primaryAction}
+            onClick={() => onToggleDone(task.id)}
             aria-label={primaryLabel}
             className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
               isDone

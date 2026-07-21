@@ -3,7 +3,11 @@
  * Усі інші модулі спираються на ці типи — змінювати їх обережно.
  */
 
-export type TaskStatus = 'inbox' | 'today' | 'done'
+/**
+ * Секція, у якій живе задача. Виконаність — окремо, через completedAt:
+ * позначена виконаною задача лишається у своїй секції, а не переїжджає.
+ */
+export type TaskStatus = 'inbox' | 'today'
 
 export type TaskPriority = 'high' | 'medium' | 'low'
 

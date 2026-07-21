@@ -18,8 +18,6 @@ export interface UseTasksResult {
   /** false до першого читання localStorage — рендеримо скелетон, а не empty state */
   hydrated: boolean
   addParsedTasks: (parsed: ParsedTask[]) => void
-  moveToToday: (id: string) => void
-  moveToInbox: (id: string) => void
   toggleDone: (id: string) => void
   removeTask: (id: string) => void
 }
@@ -36,15 +34,9 @@ export function useTasks(): UseTasksResult {
   useEffect(hydrate, [])
 
   const addParsedTasks = useCallback((parsed: ParsedTask[]) => {
-    update((current) => taskOps.addTasks(current, parsed))
-  }, [])
-
-  const moveToToday = useCallback((id: string) => {
-    update((current) => taskOps.moveToToday(current, id))
-  }, [])
-
-  const moveToInbox = useCallback((id: string) => {
-    update((current) => taskOps.moveToInbox(current, id))
+    // Локальна дата користувача вирішує, що піде в «Сьогодні», а що в «Інші дні».
+    const today = taskOps.todayISODate()
+    update((current) => taskOps.addTasks(current, parsed, today))
   }, [])
 
   const toggleDone = useCallback((id: string) => {
@@ -63,8 +55,6 @@ export function useTasks(): UseTasksResult {
     inbox,
     hydrated,
     addParsedTasks,
-    moveToToday,
-    moveToInbox,
     toggleDone,
     removeTask,
   }

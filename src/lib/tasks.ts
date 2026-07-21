@@ -3,6 +3,9 @@ import type { ParsedTask, Task, TaskPriority } from './types'
 /**
  * Чисті функції над задачами: жодного стану, жодних сайд-ефектів.
  * Усе тут можна покрити тестами без React і без браузера.
+ *
+ * Модель виконаності: задача виконана ⇔ виставлено completedAt. Статус
+ * ('today' | 'inbox') — це лише секція, і він не змінюється від виконання.
  */
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = {
@@ -18,48 +21,45 @@ function createId(): string {
   return `task_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function createTask(parsed: ParsedTask): Task {
+export function isDone(task: Task): boolean {
+  return task.completedAt != null
+}
+
+/**
+ * Розподіл за датою: задача з сьогоднішнім дедлайном одразу йде в «Сьогодні»,
+ * решта — в «Інші дні». `today` передається ззовні (локальна дата користувача),
+ * щоб не залежати від UTC-годинника сервера.
+ */
+export function createTask(parsed: ParsedTask, today: string): Task {
+  const isToday = parsed.dueDate === today
+
   return {
     ...parsed,
     id: createId(),
-    status: 'inbox',
+    status: isToday ? 'today' : 'inbox',
+    scheduledDate: isToday ? today : undefined,
     createdAt: new Date().toISOString(),
   }
 }
 
-export function addTasks(tasks: Task[], parsed: ParsedTask[]): Task[] {
-  return [...parsed.map(createTask), ...tasks]
+export function addTasks(tasks: Task[], parsed: ParsedTask[], today: string): Task[] {
+  return [...parsed.map((item) => createTask(item, today)), ...tasks]
 }
 
-export function moveToToday(tasks: Task[], id: string): Task[] {
+export function moveToToday(tasks: Task[], id: string, today: string): Task[] {
   return tasks.map((task) =>
-    task.id === id
-      ? {
-          ...task,
-          status: 'today',
-          scheduledDate: todayISODate(),
-          completedAt: undefined,
-        }
-      : task,
+    task.id === id ? { ...task, status: 'today', scheduledDate: today } : task,
   )
 }
 
-export function moveToInbox(tasks: Task[], id: string): Task[] {
-  return tasks.map((task) =>
-    task.id === id
-      ? { ...task, status: 'inbox', scheduledDate: undefined, completedAt: undefined }
-      : task,
-  )
-}
-
-/** Виконано ↔ не виконано. Знята галочка повертає задачу в «Сьогодні». */
+/** Виконано ↔ не виконано, на місці — секція задачі не змінюється. */
 export function toggleDone(tasks: Task[], id: string): Task[] {
   return tasks.map((task) => {
     if (task.id !== id) return task
 
-    return task.status === 'done'
-      ? { ...task, status: 'today', completedAt: undefined }
-      : { ...task, status: 'done', completedAt: new Date().toISOString() }
+    return isDone(task)
+      ? { ...task, completedAt: undefined }
+      : { ...task, completedAt: new Date().toISOString() }
   })
 }
 
@@ -68,23 +68,22 @@ export function removeTask(tasks: Task[], id: string): Task[] {
 }
 
 /** Невиконані вгорі за пріоритетом, виконані внизу в порядку завершення. */
-export function selectToday(tasks: Task[]): Task[] {
-  return tasks
-    .filter((task) => task.status === 'today' || task.status === 'done')
-    .sort((a, b) => {
-      if (a.status !== b.status) return a.status === 'done' ? 1 : -1
-      if (a.status === 'done') return a.completedAt!.localeCompare(b.completedAt!)
+function bySectionOrder(a: Task, b: Task): number {
+  const aDone = isDone(a)
+  const bDone = isDone(b)
+  if (aDone !== bDone) return aDone ? 1 : -1
+  if (aDone) return a.completedAt!.localeCompare(b.completedAt!)
 
-      const byPriority = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
-      return byPriority !== 0 ? byPriority : a.createdAt.localeCompare(b.createdAt)
-    })
+  const byPriority = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+  return byPriority !== 0 ? byPriority : a.createdAt.localeCompare(b.createdAt)
 }
 
-/** Найновіші зверху — щойно розібрані задачі одразу видно. */
+export function selectToday(tasks: Task[]): Task[] {
+  return tasks.filter((task) => task.status === 'today').sort(bySectionOrder)
+}
+
 export function selectInbox(tasks: Task[]): Task[] {
-  return tasks
-    .filter((task) => task.status === 'inbox')
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return tasks.filter((task) => task.status === 'inbox').sort(bySectionOrder)
 }
 
 /** Локальна дата, не UTC: о 23:00 у Києві це має бути сьогодні, а не завтра. */

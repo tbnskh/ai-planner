@@ -42,15 +42,36 @@ const OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const
 
-function systemPrompt(): string {
-  // День тижня передаємо явно, інакше модель обчислює його сама й помиляється
-  // на день у формулюваннях на кшталт «до п'ятниці».
-  const now = new Date()
-  const weekday = new Intl.DateTimeFormat('uk-UA', { weekday: 'long' }).format(now)
+interface DateContext {
+  today: string
+  weekday: string
+}
 
+/**
+ * Дата й день тижня надходять від клієнта (локальний час користувача).
+ * Сервер Vercel працює в UTC, тож обчислення дати на сервері давало зсув на день
+ * у формулюваннях на кшталт «сьогодні» / «до п'ятниці». Якщо клієнт нічого не
+ * передав — м'який fallback на серверну дату.
+ */
+function resolveDateContext(raw: unknown): DateContext {
+  const source = (raw ?? {}) as { today?: unknown; weekday?: unknown }
+  const isIsoDate = typeof source.today === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(source.today)
+
+  if (isIsoDate && typeof source.weekday === 'string' && source.weekday.length > 0) {
+    return { today: source.today as string, weekday: source.weekday }
+  }
+
+  const now = new Date()
+  return {
+    today: todayISODate(now),
+    weekday: new Intl.DateTimeFormat('uk-UA', { weekday: 'long' }).format(now),
+  }
+}
+
+function systemPrompt({ today, weekday }: DateContext): string {
   return `Ти — асистент планувальника задач. Користувач вивалює потік думок, а ти перетворюєш його на структурований список задач.
 
-Сьогодні ${weekday}, ${todayISODate(now)}.
+Сьогодні ${weekday}, ${today}.
 
 Правила:
 - Виділяй кожну окрему дію як окрему задачу. Одне речення може містити кілька задач.
@@ -59,7 +80,8 @@ function systemPrompt(): string {
 - priority: high — є дедлайн, наслідки зволікання або явна терміновість; low — «колись», «як буде час»; medium — усе інше. Якщо сумніваєшся, став medium.
 - estimatedMinutes став лише тоді, коли з тексту справді можна оцінити тривалість. Не вигадуй.
 - notes додавай лише якщо в тексті є конкретика, яка не влізла в заголовок.
-- dueDate виводь із відносних формулювань («до п'ятниці», «завтра», «до кінця місяця») відносно сьогоднішньої дати. Формат строго YYYY-MM-DD. Якщо дедлайну немає — не додавай поле.
+- dueDate виводь із відносних формулювань відносно сьогоднішньої дати (${today}). Формат строго YYYY-MM-DD. Якщо дедлайну немає — не додавай поле.
+- Якщо користувач каже зробити щось «сьогодні» — постав dueDate рівно сьогоднішній даті (${today}). «завтра» — наступний день, і так далі.
 - Не додавай задач, яких немає в тексті. Не об'єднуй різні дії в одну.
 - Якщо в тексті немає жодної дії — поверни порожній масив.`
 }
@@ -76,13 +98,14 @@ export async function POST(
   request: Request,
 ): Promise<NextResponse<ParseSuccessResponse | ParseErrorResponse>> {
   // Спершу валідуємо запит — це дешево й детерміновано, і не залежить від конфігурації.
-  let text: unknown
+  let body: { text?: unknown; today?: unknown; weekday?: unknown }
   try {
-    text = (await request.json())?.text
+    body = await request.json()
   } catch {
     return errorResponse('EMPTY_INPUT', 'Некоректний запит.', 400)
   }
 
+  const text = body?.text
   if (typeof text !== 'string' || text.trim().length === 0) {
     return errorResponse('EMPTY_INPUT', 'Текст порожній.', 400)
   }
@@ -92,13 +115,14 @@ export async function POST(
     return errorResponse('CONFIG', 'ANTHROPIC_API_KEY не налаштовано на сервері.', 500)
   }
 
+  const dateContext = resolveDateContext(body)
   const client = new Anthropic({ apiKey })
 
   try {
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 8000,
-      system: systemPrompt(),
+      system: systemPrompt(dateContext),
       output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
       messages: [{ role: 'user', content: text.slice(0, MAX_INPUT_LENGTH) }],
     })
