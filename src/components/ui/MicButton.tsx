@@ -21,10 +21,10 @@ export function MicButton({
       aria-pressed={listening}
       aria-label={listening ? 'Зупинити запис' : 'Ввести голосом'}
       // 44px — мінімальна зручна зона тапу під палець на мобільному.
-      className={`flex size-11 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex size-11 items-center justify-center rounded-full text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         listening
-          ? 'animate-pulse bg-red-500 text-white hover:bg-red-600'
-          : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+          ? 'animate-pulse bg-red-500 hover:bg-red-600'
+          : 'bg-accent hover:bg-accent-hover'
       } ${className}`}
     >
       {listening ? <StopIcon /> : <MicIcon />}
