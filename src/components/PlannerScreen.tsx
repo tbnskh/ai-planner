@@ -56,13 +56,7 @@ export function PlannerScreen() {
           title="Сьогодні"
           hydrated={hydrated}
           isEmpty={today.length === 0}
-          emptyState={
-            <EmptyState>
-              На сьогодні нічого не заплановано.
-              <br />
-              Скажи, що зробити сьогодні — і воно з’явиться тут.
-            </EmptyState>
-          }
+          emptyState={<EmptyState>Поки нічого. Скажи, що зробити сьогодні.</EmptyState>}
         >
           {today.map((task) => (
             <TaskItem
@@ -78,13 +72,7 @@ export function PlannerScreen() {
           title="Інші дні"
           hydrated={hydrated}
           isEmpty={inbox.length === 0}
-          emptyState={
-            <EmptyState>
-              Список порожній.
-              <br />
-              Вивали все, що в голові, у поле нижче ↓
-            </EmptyState>
-          }
+          emptyState={<EmptyState>Поки порожньо. Вивали думки нижче ↓</EmptyState>}
         >
           {inbox.map((task) => (
             <TaskItem
