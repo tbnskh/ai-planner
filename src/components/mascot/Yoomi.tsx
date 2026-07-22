@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-export type YoomiExpression = 'calm' | 'happy'
+export type YoomiExpression = 'calm' | 'happy' | 'organizing'
 
 interface YoomiProps {
   expression?: YoomiExpression
@@ -17,9 +17,16 @@ interface YoomiProps {
  *  - calm  — спокійна, привітна (стартовий і порожній екрани)
  *  - happy — задоволена, усмішка + іскри (стан результату)
  */
+const LABELS: Record<YoomiExpression, string> = {
+  calm: 'Yoomi',
+  happy: 'Yoomi усміхається',
+  organizing: 'Yoomi організовує',
+}
+
 export function Yoomi({ expression = 'calm', className, style }: YoomiProps) {
   const isHappy = expression === 'happy'
-  const label = isHappy ? 'Yoomi усміхається' : 'Yoomi'
+  const isOrganizing = expression === 'organizing'
+  const label = LABELS[expression]
 
   return (
     <svg
@@ -61,11 +68,14 @@ export function Yoomi({ expression = 'calm', className, style }: YoomiProps) {
       <ellipse cx="156" cy="140" rx="12" ry="7.5" fill="#ff7ab0" opacity={isHappy ? 0.75 : 0.55} />
 
       {/* Очі */}
-      <Eye cx={88} />
-      <Eye cx={132} />
+      <Eye cx={88} organizing={isOrganizing} />
+      <Eye cx={132} organizing={isOrganizing} />
 
       {/* Рот */}
-      {isHappy ? (
+      {isOrganizing ? (
+        // Стурбоване «о»
+        <ellipse cx="110" cy="146" rx="5" ry="6" fill="#1a1016" />
+      ) : isHappy ? (
         <path
           d="M92 138q18 22 36 0"
           fill="none"
@@ -86,7 +96,18 @@ export function Yoomi({ expression = 'calm', className, style }: YoomiProps) {
   )
 }
 
-function Eye({ cx }: { cx: number }) {
+function Eye({ cx, organizing }: { cx: number; organizing: boolean }) {
+  if (organizing) {
+    // Великі стурбовані очі; зіниці «бігають» (клас анімується в globals.css).
+    return (
+      <>
+        <ellipse cx={cx} cy={112} rx={18} ry={22} fill="#ffffff" />
+        <circle className="yoomi-dart" cx={cx} cy={112} r={8} fill="#1a1016" />
+        <circle cx={cx + 3} cy={108} r={2.6} fill="#ffffff" />
+      </>
+    )
+  }
+
   return (
     <>
       <ellipse cx={cx} cy={113} rx={16} ry={19} fill="#ffffff" />

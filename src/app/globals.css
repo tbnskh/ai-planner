@@ -34,3 +34,102 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* --- Анімація «Yoomi організовує» (Частина 2) --- */
+
+/* Желейне колихання: Yoomi «розтікається» й пружинить (soft-bounce). */
+@keyframes yoomi-wobble {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  25% {
+    transform: scale(1.08, 0.92) skewX(-2deg);
+  }
+  50% {
+    transform: scale(0.95, 1.05);
+  }
+  75% {
+    transform: scale(1.05, 0.96) skewX(2deg);
+  }
+}
+
+/* Зіниці «бігають» — стурбований погляд. */
+@keyframes yoomi-dart {
+  0%,
+  100% {
+    transform: translateX(-1.5px);
+  }
+  50% {
+    transform: translateX(1.5px);
+  }
+}
+
+/* Хаос навколо: частинки кружляють. */
+@keyframes yoomi-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Пружна поява (Yoomi «збирається» назад, стан «Готово»). */
+@keyframes yoomi-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Невизначений прогрес-бар. */
+@keyframes yoomi-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.yoomi-wobble {
+  transform-origin: bottom center;
+  animation: yoomi-wobble 1.7s ease-in-out infinite;
+}
+.yoomi-dart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: yoomi-dart 0.9s ease-in-out infinite;
+}
+.yoomi-orbit {
+  transform-origin: center;
+  animation: yoomi-orbit 7s linear infinite;
+}
+.yoomi-pop {
+  animation: yoomi-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.yoomi-progress-fill {
+  animation: yoomi-progress 1.3s ease-in-out infinite;
+}
+
+/* Хто вимкнув анімації — бачить статичного Yoomi без руху. */
+@media (prefers-reduced-motion: reduce) {
+  .yoomi-wobble,
+  .yoomi-dart,
+  .yoomi-orbit,
+  .yoomi-pop,
+  .yoomi-progress-fill {
+    animation: none;
+  }
+  .yoomi-progress-fill {
+    transform: translateX(60%);
+  }
+}

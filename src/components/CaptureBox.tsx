@@ -6,6 +6,7 @@ import { ParseError, parseTasks } from '@/lib/api/parseTasks'
 import { useSpeechRecognition } from '@/lib/speech/useSpeechRecognition'
 import type { ParsedTask } from '@/lib/types'
 
+import { OrganizingOverlay } from './mascot/OrganizingOverlay'
 import { Button } from './ui/Button'
 import { MicButton } from './ui/MicButton'
 import { Spinner } from './ui/Spinner'
@@ -14,9 +15,13 @@ interface CaptureBoxProps {
   onParsed: (tasks: ParsedTask[]) => void
 }
 
+/** Скільки тримати екран «Готово!», перш ніж показати список. */
+const DONE_HOLD_MS = 1200
+
 type State =
   | { kind: 'idle' }
   | { kind: 'loading' }
+  | { kind: 'done' }
   | { kind: 'error'; message: string }
   | { kind: 'no-tasks' }
 
@@ -34,8 +39,11 @@ export function CaptureBox({ onParsed }: CaptureBoxProps) {
     },
   })
 
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const isLoading = state.kind === 'loading'
-  const canSubmit = text.trim().length > 0 && !isLoading
+  const isBusy = state.kind === 'loading' || state.kind === 'done'
+  const canSubmit = text.trim().length > 0 && !isBusy
 
   function toggleRecording() {
     if (speech.listening) {
@@ -59,10 +67,13 @@ export function CaptureBox({ onParsed }: CaptureBoxProps) {
         return
       }
 
+      // Додаємо задачі одразу (вони під оверлеєм), тримаємо екран «Готово!»,
+      // потім прибираємо оверлей — і користувач бачить готовий список.
       onParsed(tasks)
       setText('')
       baseTextRef.current = ''
-      setState({ kind: 'idle' })
+      setState({ kind: 'done' })
+      doneTimer.current = setTimeout(() => setState({ kind: 'idle' }), DONE_HOLD_MS)
     } catch (error) {
       setState({
         kind: 'error',
@@ -74,6 +85,8 @@ export function CaptureBox({ onParsed }: CaptureBoxProps) {
 
   return (
     <section className="space-y-3">
+      {isBusy && <OrganizingOverlay phase={state.kind === 'done' ? 'done' : 'organizing'} />}
+
       <label htmlFor="capture" className="block px-1 text-sm font-medium text-muted">
         Що в голові?
       </label>
@@ -89,7 +102,7 @@ export function CaptureBox({ onParsed }: CaptureBoxProps) {
               void handleSubmit()
             }
           }}
-          disabled={isLoading}
+          disabled={isBusy}
           rows={3}
           placeholder="Вивантаж все, що крутиться в голові. Yoomi організує"
           className="w-full resize-none rounded-2xl border border-border bg-surface p-4 pr-16 text-sm leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-60"
@@ -98,7 +111,7 @@ export function CaptureBox({ onParsed }: CaptureBoxProps) {
         {speech.supported && (
           <MicButton
             listening={speech.listening}
-            disabled={isLoading}
+            disabled={isBusy}
             onClick={toggleRecording}
             className="absolute right-3 top-1/2 -translate-y-1/2"
           />
