@@ -18,7 +18,6 @@ interface TaskItemProps {
 
 export function TaskItem({ task, onToggleDone, onRemove }: TaskItemProps) {
   const isDone = taskIsDone(task)
-  const isHigh = task.priority === 'high'
   const meta = cardMeta(task)
 
   const primaryLabel = isDone ? 'Позначити невиконаною' : 'Виконано'
@@ -42,19 +41,16 @@ export function TaskItem({ task, onToggleDone, onRemove }: TaskItemProps) {
             )}
           </span>
 
-          <div className="flex items-center gap-2">
-            {isHigh && <StarIcon />}
-            <button
-              type="button"
-              onClick={() => onRemove(task.id)}
-              aria-label="Видалити задачу"
-              className="-m-1 flex size-7 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/15 hover:text-white"
-            >
-              <svg viewBox="0 0 20 20" className="size-4 stroke-current stroke-2" aria-hidden>
-                <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => onRemove(task.id)}
+            aria-label="Видалити задачу"
+            className="-m-1 flex size-7 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/15 hover:text-white"
+          >
+            <svg viewBox="0 0 20 20" className="size-4 stroke-current stroke-2" aria-hidden>
+              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
 
         <div className="mt-1.5 flex items-center gap-3">
@@ -93,14 +89,6 @@ export function TaskItem({ task, onToggleDone, onRemove }: TaskItemProps) {
         )}
       </div>
     </li>
-  )
-}
-
-function StarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5 fill-amber-300" aria-label="Важлива задача">
-      <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.9 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" />
-    </svg>
   )
 }
 
