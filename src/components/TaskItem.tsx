@@ -2,13 +2,7 @@
 
 import { cardColor } from '@/lib/cardColor'
 import { isDone as taskIsDone } from '@/lib/tasks'
-import type { Task, TaskPriority } from '@/lib/types'
-
-const PRIORITY_LABEL: Record<TaskPriority, string> = {
-  high: 'Важливо',
-  medium: 'Звичайно',
-  low: 'Колись',
-}
+import type { Task } from '@/lib/types'
 
 interface TaskItemProps {
   task: Task
@@ -37,7 +31,7 @@ export function TaskItem({ task, onToggleDone, onRemove }: TaskItemProps) {
                 {meta.date} <span className="text-white/70">{meta.weekday}</span>
               </>
             ) : (
-              PRIORITY_LABEL[task.priority]
+              'Дата не вказана'
             )}
           </span>
 
