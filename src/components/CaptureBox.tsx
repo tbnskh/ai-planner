@@ -105,7 +105,8 @@ export function CaptureBox({ onParsed }: CaptureBoxProps) {
           disabled={isBusy}
           rows={3}
           placeholder="Вивантаж все, що крутиться в голові. Yoomi організує"
-          className="w-full resize-none rounded-2xl border border-border bg-surface p-4 pr-16 text-sm leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-60"
+          // text-base (16px) — нижче 16px iOS Safari авто-зумить сторінку на фокусі.
+          className="w-full resize-none rounded-2xl border border-border bg-surface p-4 pr-16 text-base leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
         />
 
         {speech.supported && (
